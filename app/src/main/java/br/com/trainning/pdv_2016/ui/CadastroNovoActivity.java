@@ -1,5 +1,6 @@
 package br.com.trainning.pdv_2016.ui;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
@@ -22,13 +23,23 @@ import com.mapzen.android.lost.api.LostApiClient;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 import br.com.trainning.pdv_2016.R;
 import br.com.trainning.pdv_2016.domain.model.Produto;
+import br.com.trainning.pdv_2016.domain.network.APIClient;
 import br.com.trainning.pdv_2016.domain.util.Base64Util;
 import br.com.trainning.pdv_2016.domain.util.ImageInputHelper;
 import butterknife.Bind;
 import butterknife.OnClick;
+import dmax.dialog.SpotsDialog;
+import jim.h.common.android.lib.zxing.config.ZXingLibConfig;
+import jim.h.common.android.lib.zxing.integrator.IntentIntegrator;
+import jim.h.common.android.lib.zxing.integrator.IntentResult;
+import retrofit.Callback;
+import retrofit.RetrofitError;
+import retrofit.client.Response;
+import se.emilsjolander.sprinkles.Query;
 
 public class CadastroNovoActivity extends BaseActivity implements ImageInputHelper.ImageActionListener{
 
@@ -54,6 +65,11 @@ public class CadastroNovoActivity extends BaseActivity implements ImageInputHelp
     private double latitude = 0.0d;
     private double longitude = 0.0d;
 
+    private ZXingLibConfig zxingLibConfig;
+
+    Callback<String> callbackNovoProduto;
+    AlertDialog dialog;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,6 +77,19 @@ public class CadastroNovoActivity extends BaseActivity implements ImageInputHelp
         setContentView(R.layout.activity_cadastro_novo);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        configureNovoProdutoCallback();
+
+        zxingLibConfig = new ZXingLibConfig();
+        zxingLibConfig.useFrontLight = true;
+
+        editTextCodigo.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                IntentIntegrator.initiateScan(CadastroNovoActivity.this, zxingLibConfig);
+            }
+        });
+
+        dialog = new SpotsDialog(this,"Enviando");
 
         LostApiClient lostApiClient = new LostApiClient.Builder(this).build();
         lostApiClient.connect();
@@ -102,9 +131,12 @@ public class CadastroNovoActivity extends BaseActivity implements ImageInputHelp
 
                 produto.setLatitude(latitude);
                 produto.setLongitude(longitude);
+                produto.setStatus(0);
 
                 produto.save();
-                finish();
+                dialog.show();
+                new APIClient().getRestService().createProduto(produto.getCodigoBarras(), produto.getDescricao(),produto.getUnidade(),produto.getPreco(),produto.getFoto(),produto.getStatus(),produto.getLatitude(),produto.getLongitude(),callbackNovoProduto);
+
 
 
             }
@@ -125,8 +157,32 @@ public class CadastroNovoActivity extends BaseActivity implements ImageInputHelp
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         imageInputHelper.onActivityResult(requestCode, resultCode, data);
-    }
 
+        switch (requestCode) {
+            case IntentIntegrator.REQUEST_CODE:
+                IntentResult scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
+
+                if (scanResult == null) { return;  }
+
+                String result = scanResult.getContents();
+
+                if(result != null) {
+                    Log.d("SCANBARCODE","BarCode: "+result);
+
+                    editTextCodigo.setText(result);
+                }
+                break;
+
+            default:
+        }
+    }
+   /*
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        imageInputHelper.onActivityResult(requestCode, resultCode, data);
+    }
+*/
     @Override
     public void onImageSelectedFromGallery(Uri uri, File imageFile) {
 
@@ -151,5 +207,28 @@ public class CadastroNovoActivity extends BaseActivity implements ImageInputHelp
             e.printStackTrace();
         }
     }
+
+    private void configureNovoProdutoCallback() {
+
+        callbackNovoProduto = new Callback<String>() {
+
+            @Override public void success(String resultado, Response response) {
+                dialog.dismiss();
+                finish();
+
+
+
+            }
+
+            @Override public void failure(RetrofitError error) {
+                dialog.dismiss();
+                Snackbar.make(findViewById(android.R.id.content).getRootView(),"Ocorreu um erro ao gravar os dados, verifique a conexão!",Snackbar.LENGTH_SHORT).show();
+
+            }
+        };
+    }
+
+
+
 
 }

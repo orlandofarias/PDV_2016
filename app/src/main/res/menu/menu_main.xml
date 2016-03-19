@@ -8,9 +8,18 @@
         android:title="@string/action_novo"
         app:showAsAction="never" />
     <item
-        android:id="@+id/action_edit"
+    android:id="@+id/action_edit"
+    android:orderInCategory="100"
+    android:title="@string/action_edit"
+    app:showAsAction="never" />
+    <item
+        android:id="@+id/action_sincronia"
         android:orderInCategory="100"
-        android:title="@string/action_edit"
+        android:title="@string/sincronizar_produtos"
         app:showAsAction="never" />
-
+    <item
+        android:id="@+id/action_fecha_compra"
+        android:orderInCategory="100"
+        android:title="@string/fechar_a_compra"
+        app:showAsAction="never" />
 </menu>
