@@ -89,7 +89,6 @@ public class MainActivity extends BaseActivity {
 
         idCompra = Util.getUniquePsuedoID();
         carrinho = new Carrinho();
-        carrinho.setId(0);
         carrinho.setIdCompra(idCompra);
         carrinho.setEncerrada(0);
         carrinho.setEnviada(0);
@@ -317,7 +316,7 @@ public class MainActivity extends BaseActivity {
     }
 
     public void popularLista(){
-        List<Item> listaItem = Query.many(Item.class, "select * from item where id_compra = ? order by id", 1).get().asList();
+        List<Item> listaItem = Query.many(Item.class, "select * from item where id_compra = ? order by id", idCompra).get().asList();
 
         Log.d("TAMANHOLISTA",""+ listaItem.size());
 
@@ -386,7 +385,6 @@ public class MainActivity extends BaseActivity {
                     it.delete();
                 }
                 carrinho = new Carrinho();
-                carrinho.setId(0);
                 idCompra=Util.getUniquePsuedoID();
                 carrinho.setIdCompra(idCompra);
                 carrinho.setEnviada(0);
